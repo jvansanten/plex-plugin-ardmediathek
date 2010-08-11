@@ -27,17 +27,22 @@ BASE_URL = "http://www.ardmediathek.de"
 def FullURL(path):
   return BASE_URL + path
 
-def GetVideoItem(showData):
+def GetVideoItem(showData, includeShowName=True):
   showDetails = showData['showDetails']
+  if (includeShowName):
+	itemTitle = showData['showName'] + " | " + showData['showTitle']
+  else:
+	itemTitle = showData['showTitle']
+
   return Function(VideoItem(
           GetStreamURL,
-          title = showData['showName'] + " | " + showData['showTitle'],
+          title = itemTitle,
           subtitle = showDetails['showDuration'],
           thumb = FullURL(showDetails['showThumbPath']),
           summary = showDetails['showDescription'],
         ), url = FullURL(showData['showPath']))
 
-def ParseShowData(element):
+def ParseEpisodeData(element):
   titleElements = element.xpath("./h3[@class='mt-title']/a")
   videoTypeElements = element.xpath(".//span[" + containing("mt-icon_video") + "]")
   if ((len(titleElements) > 0) and (len(videoTypeElements) > 0)):
@@ -45,8 +50,8 @@ def ParseShowData(element):
     documentID = GetDocumentID(showPath)
 
     showTitle = Utf8Decode(titleElements[0].text)
-    showDetails = ParseShowDetails(documentID)
-    showName = ParseShowName(element)
+    showDetails = ParseEpisodeDetails(documentID)
+    showName = ParseEpisodeName(element)
 
     itemDict = {
       'showPath': showPath,
@@ -60,7 +65,7 @@ def ParseShowData(element):
 
   return None
 
-def ParseShowName(element):
+def ParseEpisodeName(element):
   nameElement = element.xpath(".//p[" + containing("mt-source") + "]")[0]
   reShowName = re.search("aus:(.*)", nameElement.text)
   showName = Utf8Decode(reShowName.group(1))
@@ -70,7 +75,7 @@ def ParseShowName(element):
 def containing(className):
   return "contains(concat(' ',normalize-space(@class),' '),' " + className + " ')";
 
-def ParseShowDetails(documentID):
+def ParseEpisodeDetails(documentID):
   detailPage = XML.ElementFromURL(FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html"), True)
 
   titleElements = detailPage.xpath("./h3[@class='mt-title']/a")
@@ -79,8 +84,13 @@ def ParseShowDetails(documentID):
 
   showThumbPath = str(detailPage.xpath("//img/@src")[0])
   durationElement = detailPage.xpath(".//span[@class='mt-airtime']")[0]
-  reShowDuration = re.search(".*min", durationElement.text)
-  showDuration = Utf8Decode(reShowDuration.group(0))
+  # actually: this regex does nothing more, than stripping the durationElement.text after the string 'min'
+  # as sometimes, this string is not contained, the regex result must be checked
+  reShowDuration = re.search(".* min", durationElement.text)
+  if (reShowDuration is not None):
+	showDuration = Utf8Decode(reShowDuration.group(0))
+  else:
+	showDuration = durationElement.text
 
   nameElement = detailPage.xpath(".//p[" + containing("mt-source") + "]")[0]
   reShowName = re.search("aus:(.*)", nameElement.text)
@@ -97,6 +107,8 @@ def ParseShowDetails(documentID):
     'showName': showName,
     'showDescription': showDescription
   }
+
+  return detailPageDict
 
 def Utf8Decode(source):
   try:
@@ -150,3 +162,15 @@ def GetLargeThumb(documentID):
   imagePath = str(site.xpath("//img/@src")[0])
 
   return HTTP.Request(FullURL(imagePath))
+
+def ParseMediaItemList(url):
+  shows = []
+  site = XML.ElementFromURL(url, True)
+  showElements = site.xpath("//div[@class='mt-media_item']")
+  Log('showElements.size: '+str(len(showElements)))
+  for i in range(0, len(showElements)):
+    showElement = showElements[i]
+    showData = ParseEpisodeData(showElement)
+    if (showData is not None):
+      shows.append(GetVideoItem(showData))
+  return shows

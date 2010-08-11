@@ -23,14 +23,15 @@ from core import *
 ####################################################################################################
 
 def MenuTopMostViewedToday(sender):
-  dir = MediaContainer(viewGroup="InfoList")
+  dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
   site = XML.ElementFromURL(BASE_URL, True)
   
   contentBoxes = site.xpath("//div[@class='mt-box']")
   mostViewedBox = contentBoxes[1]
   mostViewedElement = mostViewedBox.xpath(".//div[@class='mt-box_header']/ul/li/a")[1]
   listPath = str(mostViewedElement.xpath('@href')[0])
-  
+  Log('ListPath: '+listPath)
+
   documentID = GetDocumentID(listPath)
   listURL = FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=list/show=recent/index.html")
 
@@ -47,7 +48,7 @@ def ParseMenuTopMostViewedToday(url):
   showElements = site.xpath("//div[@class='mt-media_item']")
   for i in range(0, len(showElements)):
     showElement = showElements[i]
-    showData = ParseShowData(showElement)
+    showData = ParseEpisodeData(showElement)
     if (showData is not None):
       shows.append(GetVideoItem(showData))
   return shows

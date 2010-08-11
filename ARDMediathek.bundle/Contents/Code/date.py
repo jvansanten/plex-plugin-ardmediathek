@@ -23,7 +23,7 @@ from core import *
 ####################################################################################################
 
 def MenuTopByDate(sender):
-  dir = MediaContainer(viewGroup="List")
+  dir = MediaContainer(viewGroup="List", title2=sender.itemTitle)
   site = XML.ElementFromURL(BASE_URL, True)
   
   listPath = str(site.xpath("//ul[@class='mt_navi']/li[@class='special']/a/@href")[0])
@@ -58,7 +58,7 @@ def ParseMenuTopByDate(url):
 
 
 def MenuByDate(sender, url):
-  dir = MediaContainer(viewGroup="InfoList")
+  dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
   site = XML.ElementFromURL(url, True)
   
   listPath = str(site.xpath("//a[@class='mt-box_pillbutton']/@href")[0])
@@ -68,7 +68,7 @@ def MenuByDate(sender, url):
   showElements = site.xpath("//div[@class='mt-box-overflow']/ol/li/ol/li/div[@class='mt-media_item']")
   for i in range(0, len(showElements)):
     showElement = showElements[i]
-    showData = ParseShowData(showElement)
+    showData = ParseEpisodeData(showElement)
     if (showData is not None):
       dir.Append(GetVideoItem(showData))
   
