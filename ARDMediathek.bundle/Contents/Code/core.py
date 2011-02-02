@@ -49,9 +49,9 @@ def ParseEpisodeData(element):
     showPath = str(titleElements[0].xpath("@href")[0])
     documentID = GetDocumentID(showPath)
 
-    showTitle = Utf8Decode(titleElements[0].text)
+    showTitle = Utf8Decode(titleElements[0].text).strip()
     showDetails = ParseEpisodeDetails(documentID)
-    showName = ParseEpisodeName(element)
+    showName = ParseEpisodeName(element).strip()
 
     itemDict = {
       'showPath': showPath,
@@ -94,7 +94,8 @@ def ParseEpisodeDetails(documentID):
 
   nameElement = detailPage.xpath(".//p[" + containing("mt-source") + "]")[0]
   reShowName = re.search("aus:(.*)", nameElement.text)
-  showName = Utf8Decode(reShowName.group(1))
+  #seems to not used anymore, so it's no problem to do this
+  showName = "" #Utf8Decode(reShowName.group(1))
 
   descriptionElement = detailPage.xpath(".//p[@class='mt-description']")[0]
   showDescription = Utf8Decode(descriptionElement.text)
@@ -128,21 +129,15 @@ def GetStreamURL(sender, url):
   streamsCount = len(reStream) - 1
   if (streamsCount < 0):
     streamsCount = 0
-
+  # take the 'last' mediaStream
   streamParts = reStream[streamsCount]
   streamBase = streamParts[0]
   streamClip = streamParts[1]
 
-  for i in range(0, streamsCount + 1):
-    clip = reStream[i][1]
-    if (clip.find("hi.flv") > -1):
-      streamBase = ""
-      streamClip = clip
-
-  playerURL = 'http://www.plexapp.com/player/player.php?url=' + streamBase + '&clip=' + streamClip
-
-  if (streamBase == ""):
-    playerURL = 'http://www.plexapp.com/player/player.php?clip=' + streamClip
+  # cut get parameters from the clip url
+  if (streamClip.find("?") > -1):
+  	streamClip = streamClip[0:streamClip.find("?")]
+  playerURL = 'http://www.plexapp.com/player/player.php?url=' + streamBase + '&clip=' + String.Quote(streamClip, usePlus=True)
 
   return Redirect(WebVideoItem(playerURL))
 
