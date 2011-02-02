@@ -1,4 +1,4 @@
-ARD Mediathek Plugin for Plex v0.2 alpha
+ARD Mediathek Plugin for Plex v0.2.1
 ++++++++++++++++++++++++++++++++++++++++
 
 Dieses Plex Plugin bietet Zugriff auf die ARD Mediathek.
@@ -18,13 +18,28 @@ verschoben werden:
 CHANGE LOG
 ----------
 
+Version 0.2.1
+- fixed code to get the correct rmtp stream url
+- removed the 'alpha' from the version, as all releases are releases, 1.0 will be the first full release
+
 Version 0.2. alpha
+------------------
 - internes Refactoring
 - Auswahl nach Kategorie und den Sendern in dieser Kategorie
 
 Version 0.1.1 alpha
------------------
+-------------------
 - erste Version
 - Auswahl nach Datum - 7 Tage zurück (Sendung verpasst?)
 - Auswahl nach Meistangesehenen Sendungen
 - einfaches Video-Playback
+
+
+---------
+ToDo
+---------
+- fix issue 1 (only channel 'das erste' is listed)
+- fix issue 2 (only first page is listed in category listing)
+- integrate Tagesschau video-podcast for faster access
+- integrate Tagesthemen video-podcast for faster access
+- make quality of the streams selectable (flash/silverlight/pure h264, high/medium/low)
