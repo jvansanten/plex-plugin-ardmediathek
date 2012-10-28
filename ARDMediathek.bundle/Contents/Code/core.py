@@ -49,8 +49,8 @@ def ParseEpisodeData(element):
     showPath = str(titleElements[0].xpath("@href")[0])
     documentID = GetDocumentID(showPath)
 
-    showTitle = Utf8Decode(titleElements[0].text).strip()
-    showDetails = ParseEpisodeDetails(documentID)
+    showTitle = Utf8Decode(titleElements[0].text).strip()    
+    showDetails = ParseEpisodeDetails(element, documentID)
     showName = ParseEpisodeName(element).strip()
 
     itemDict = {
@@ -75,14 +75,13 @@ def ParseEpisodeName(element):
 def containing(className):
   return "contains(concat(' ',normalize-space(@class),' '),' " + className + " ')";
 
-def ParseEpisodeDetails(documentID):
-  detailPage = XML.ElementFromURL(FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html"), True)
+def ParseEpisodeDetails(detailPage, documentID):
 
   titleElements = detailPage.xpath("./h3[@class='mt-title']/a")
   showTitle = Utf8Decode(titleElements[0].text)
   showPath = str(titleElements[0].xpath("@href")[0])
-
-  showThumbPath = str(detailPage.xpath("//img/@src")[0])
+  
+  showThumbPath = str(detailPage.xpath(".//img/@src")[0])  
   durationElement = detailPage.xpath(".//span[@class='mt-airtime']")[0]
   # actually: this regex does nothing more, than stripping the durationElement.text after the string 'min'
   # as sometimes, this string is not contained, the regex result must be checked
@@ -97,7 +96,9 @@ def ParseEpisodeDetails(documentID):
   #seems to not used anymore, so it's no problem to do this
   showName = "" #Utf8Decode(reShowName.group(1))
 
-  descriptionElement = detailPage.xpath(".//p[@class='mt-description']")[0]
+  # In the new layout, the detail flyover only contains the descriptive text
+  detailPage = XML.ElementFromURL(FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html"), True)
+  descriptionElement = detailPage.xpath(".//p")[0]
   showDescription = Utf8Decode(descriptionElement.text)
 
   detailPageDict = {
@@ -124,12 +125,13 @@ def GetStreamURL(sender, url):
   scriptContainer = site.xpath("//div[@class='mt-player_container']/script")[0]
   scriptText = scriptContainer.text
 
-  reStream = re.findall("addMediaStream.*\"(.*)\".*\"(.*)\"", scriptText)
+  # e.g. mediaCollection.addMediaStream(0, 0, "rtmp://vod.daserste.de/ardfs/", "mp4:videoportal/mediathek/Verbotene+Liebe/c_260000/264588/format326035.mp4?sen=Verbotene+Liebe&amp;for=Web-S&amp;clip=Folge+4171+Nur+die+Wahrheit+z%E4hlt&amp;mediathek=ardmediathek", "default");
+  reStream = re.findall("addMediaStream\(\d,\s*\d,\s*\"(.*)\",\s*\"(.*)\",\s*\"(.*)\"\)", scriptText)  
 
   streamsCount = len(reStream) - 1
   if (streamsCount < 0):
     streamsCount = 0
-  # take the 'last' mediaStream
+  # take the 'last' mediaStream, which is usually the highest quality
   streamParts = reStream[streamsCount]
   streamBase = streamParts[0]
   streamClip = streamParts[1]
@@ -138,7 +140,7 @@ def GetStreamURL(sender, url):
   if (streamClip.find("?") > -1):
   	streamClip = streamClip[0:streamClip.find("?")]
   playerURL = 'http://www.plexapp.com/player/player.php?url=' + streamBase + '&clip=' + String.Quote(streamClip, usePlus=True)
-
+  
   return Redirect(WebVideoItem(playerURL))
 
 
