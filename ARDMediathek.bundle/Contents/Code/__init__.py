@@ -14,18 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# PMS plugin framework
-from PMS import *
-from PMS.Objects import *
-from PMS.Shortcuts import *
 import re
+from core import *
 from category import *
 from mostViewedToday import *
 from date import *
 
 ####################################################################################################
 
-VIDEO_PREFIX = "/video/ardmediathek"
+PLUGIN_TITLE = "ARD Mediathek"
 
 NAME = L('Title')
 
@@ -44,21 +41,39 @@ BASE_URL = "http://www.ardmediathek.de"
 
 ####################################################################################################
 
-def Start():
-  Plugin.AddPrefixHandler(VIDEO_PREFIX, VideoMainMenu, L('VideoTitle'), ICON, ART)
 
-  Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-  Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
+def Start():
+  ObjectContainer.title1 = PLUGIN_TITLE
+  ObjectContainer.art = R(ART)
   
-  MediaContainer.art = R(ART)
-  MediaContainer.title1 = NAME
-  #DirectoryItem.thumb = R(ICON)
-    
+  DirectoryObject.thumb = R(ICON)
+  VideoClipObject.thumb = R(ICON)
+  InputDirectoryObject.thumb = R(ICON)
+  PrefsObject.thumb = R(ICON)
+  NextPageObject.thumb = R(ICON)
+
+@handler(VIDEO_PREFIX, PLUGIN_TITLE, thumb=ICON, art=ART)
 def VideoMainMenu():
-  dir = MediaContainer(viewGroup="List")
+  oc = ObjectContainer()
+  oc.add(DirectoryObject(key=Callback(MenuTopByDate), title="Nach Datum (Letzte 7 Tage)"))
   
-  dir.Append(Function(DirectoryItem(MenuTopByDate, title = "Nach Datum (Letzte 7 Tage)")))
-  dir.Append(Function(DirectoryItem(MenuTopMostViewedToday, title = "Beliebteste Sendungen (Heute)")))
-  dir.Append(Function(DirectoryItem(MenuCategories, title = "Kategorien")))
-  
-  return dir
+  return oc
+
+# def Start():
+#   Plugin.AddPrefixHandler(VIDEO_PREFIX, VideoMainMenu, L('VideoTitle'), ICON, ART)
+# 
+#   Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
+#   Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
+#   
+#   MediaContainer.art = R(ART)
+#   MediaContainer.title1 = NAME
+#   #DirectoryItem.thumb = R(ICON)
+#     
+# def VideoMainMenu():
+#   dir = MediaContainer(viewGroup="List")
+#   
+#   dir.Append(Function(DirectoryItem(MenuTopByDate, title = "Nach Datum (Letzte 7 Tage)")))
+#   dir.Append(Function(DirectoryItem(MenuTopMostViewedToday, title = "Beliebteste Sendungen (Heute)")))
+#   dir.Append(Function(DirectoryItem(MenuCategories, title = "Kategorien")))
+#   
+#   return dir

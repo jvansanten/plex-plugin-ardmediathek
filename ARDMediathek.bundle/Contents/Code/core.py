@@ -14,33 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# PMS plugin framework
-from PMS import *
-from PMS.Objects import *
-from PMS.Shortcuts import *
 import re
 
 ####################################################################################################
 
 BASE_URL = "http://www.ardmediathek.de"
+VIDEO_PREFIX = "/video/ardmediathek"
 
 def FullURL(path):
   return BASE_URL + path
 
+def video_items(url):
+  return [MediaObject(parts=[PartObject(key=Callback(GetStreamURL, url=url))])]
+
 def GetVideoItem(showData, includeShowName=True):
   showDetails = showData['showDetails']
   if (includeShowName):
-	itemTitle = showData['showName'] + " | " + showData['showTitle']
+    itemTitle = showData['showName'] + " | " + showData['showTitle']
   else:
-	itemTitle = showData['showTitle']
+    itemTitle = showData['showTitle']
 
-  return Function(VideoItem(
-          GetStreamURL,
-          title = itemTitle,
-          subtitle = showDetails['showDuration'],
-          thumb = FullURL(showDetails['showThumbPath']),
-          summary = showDetails['showDescription'],
-        ), url = FullURL(showData['showPath']))
+  url = FullURL(showData['showPath'])
+  return EpisodeObject(key=Callback(GetStreamURL, url=url),
+      rating_key=url,
+      title = itemTitle,
+      #subtitle = showDetails['showDuration'],
+      thumb = FullURL(showDetails['showThumbPath']),
+      summary = showDetails['showDescription'],
+      items=video_items(url),
+      )
 
 def ParseEpisodeData(element):
   titleElements = element.xpath("./h3[@class='mt-title']/a")
@@ -97,7 +99,7 @@ def ParseEpisodeDetails(detailPage, documentID):
   showName = "" #Utf8Decode(reShowName.group(1))
 
   # In the new layout, the detail flyover only contains the descriptive text
-  detailPage = XML.ElementFromURL(FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html"), True)
+  detailPage = HTML.ElementFromURL(FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html"))
   descriptionElement = detailPage.xpath(".//p")[0]
   showDescription = Utf8Decode(descriptionElement.text)
 
@@ -118,9 +120,10 @@ def Utf8Decode(source):
   except:
       return ""
 
-
-def GetStreamURL(sender, url):
-  site = XML.ElementFromURL(url, True)
+@route(VIDEO_PREFIX + "/getstreamurl")
+@indirect
+def GetStreamURL(url):
+  site = HTML.ElementFromURL(url)
 
   scriptContainer = site.xpath("//div[@class='mt-player_container']/script")[0]
   scriptText = scriptContainer.text
@@ -141,7 +144,7 @@ def GetStreamURL(sender, url):
   	streamClip = streamClip[0:streamClip.find("?")]
   playerURL = 'http://www.plexapp.com/player/player.php?url=' + streamBase + '&clip=' + String.Quote(streamClip, usePlus=True)
   
-  return Redirect(WebVideoItem(playerURL))
+  return IndirectResponse(VideoClipObject, key=RTMPVideoURL(url=streamBase, clip=streamClip))
 
 
 def GetDocumentID(path):
@@ -155,14 +158,14 @@ def GetDocumentID(path):
   return documentID
 
 def GetLargeThumb(documentID):
-  site = XML.ElementFromURL("http://www.ardmediathek.de/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html", True)
+  site = HTML.ElementFromURL("http://www.ardmediathek.de/ard/servlet/ajax-cache/" + documentID + "/view=ajax/index.html")
   imagePath = str(site.xpath("//img/@src")[0])
 
   return HTTP.Request(FullURL(imagePath))
 
 def ParseMediaItemList(url):
   shows = []
-  site = XML.ElementFromURL(url, True)
+  site = HTML.ElementFromURL(url)
   showElements = site.xpath("//div[@class='mt-media_item']")
   Log('showElements.size: '+str(len(showElements)))
   for i in range(0, len(showElements)):

@@ -15,30 +15,32 @@
 # limitations under the License.
 
 # PMS plugin framework
-from PMS import *
-from PMS.Objects import *
-from PMS.Shortcuts import *
+#from PMS import *
+#from PMS.Objects import *
+#from PMS.Shortcuts import *
 from core import *
 
 ####################################################################################################
 
-def MenuTopByDate(sender):
-  dir = MediaContainer(viewGroup="List", title2=sender.itemTitle)
-  site = XML.ElementFromURL(BASE_URL, True)
+
+@route(VIDEO_PREFIX + "/recent")
+def MenuTopByDate():
+  oc = ObjectContainer()
+  #dir = MediaContainer(viewGroup="List", title2=sender.itemTitle)
+  site = HTML.ElementFromURL(BASE_URL)
   
   listPath = str(site.xpath("//ul[@class='mt_navi']/li[@class='special']/a/@href")[0])
   listURL = FullURL(listPath)
 
-  menuItems = ParseMenuTopByDate(listURL)
-  for i in range(0, len(menuItems)):
-    dir.Append(menuItems[i])
+  for item in ParseMenuTopByDate(listURL):
+    oc.add(item)
 
-  return dir
+  return oc
 
 
 def ParseMenuTopByDate(url):
   shows = []
-  site = XML.ElementFromURL(url, True)
+  site = HTML.ElementFromURL(url)
 
   dateElements = site.xpath("//div[@id='mt-broadcast_date']/ol/li/a")
   for i in range(0, len(dateElements)):
@@ -47,29 +49,22 @@ def ParseMenuTopByDate(url):
     dateWeekday = dateElement.xpath("./span")[0].text
     dateDate = dateElement.xpath("./strong")[0].text
 
-    shows.append(Function(
-      DirectoryItem(
-        MenuByDate, 
-        title = dateWeekday + " - " + dateDate
-      ), url = FullURL(datePath)
-    ))
+    shows.append(DirectoryObject(key=Callback(MenuByDate, url=FullURL(datePath)), title=dateWeekday + " - " + dateDate))
 
   return shows
 
-
-def MenuByDate(sender, url):
-  dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
-  site = XML.ElementFromURL(url, True)
+@route(VIDEO_PREFIX + "/date")
+def MenuByDate(url):
+  oc = ObjectContainer()
+  site = HTML.ElementFromURL(url)
   
   listPath = str(site.xpath("//a[@class='mt-box_pillbutton']/@href")[0])
   listURL = FullURL(listPath)
   
-  site = XML.ElementFromURL(listURL, True)
-  showElements = site.xpath("//div[@class='mt-box-overflow']/ol/li/ol/li/div[@class='mt-media_item']")
-  for i in range(0, len(showElements)):
-    showElement = showElements[i]
+  site = HTML.ElementFromURL(listURL)
+  for showElement in site.xpath("//div[@class='mt-box-overflow']/ol/li/ol/li/div[@class='mt-media_item']"):
     showData = ParseEpisodeData(showElement)
     if (showData is not None):
-      dir.Append(GetVideoItem(showData))
+      oc.add(GetVideoItem(showData))
   
-  return dir
+  return oc
