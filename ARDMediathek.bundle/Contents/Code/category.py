@@ -18,33 +18,28 @@ from core import *
 
 ####################################################################################################
 
-
 TV_CLIP_FILTER = "clipFilter=fernsehen"
 
-def MenuCategories(sender):
-	dir = MediaContainer(viewGroup="List", title2=sender.itemTitle)
-	site = XML.ElementFromURL(BASE_URL, True)
+@route(VIDEO_PREFIX + "/categories")
+def MenuCategories():
+	oc = ObjectContainer()
+	site = HTML.ElementFromURL(BASE_URL)
 	
-	categorieItems = site.xpath("//div[@class='mt-reset mt-categories']/ul/li/a")
 	Log('Testoutput')
-	for i in range(0, len(categorieItems)):
-		categorieItem = categorieItems[i]
+	for categorieItem in site.xpath("//div[@class='mt-reset mt-categories']/ul/li/a"):
 		itemPath = str(categorieItem.xpath("@href")[0])
 		itemText = categorieItem.text
-		dir.Append(Function(
-			DirectoryItem(
-			MenuByCategory, 
-			title = itemText
-			), url = FullURL(itemPath)
-		))
-	return dir
+		oc.add(DirectoryObject(key=Callback(MenuByCategory, url=FullURL(itemPath)), title=itemText))
+		
+	return oc
 
-def MenuByCategory(sender, url):
+@route(VIDEO_PREFIX + "/category")
+def MenuByCategory(url):
 	# creates a list of all available show, clicking on a show will then list all episodes of this show
-	dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
+	dir = ObjectContainer()
 	
 	url = url + "&" + TV_CLIP_FILTER
-	site = XML.ElementFromURL(url, True)
+	site = HTML.ElementFromURL(url)
 	contentBoxes = site.xpath("//div[@class='mt-box']")
 	Log('size contentBoxes: '+str(len(contentBoxes)))
 	# the categories are in the second mt-box
@@ -53,92 +48,84 @@ def MenuByCategory(sender, url):
 	Log('preloadElement: ' +XML.StringFromElement(preloadElement))
 	
 	preloadUrl = FullURL(str(preloadElement.xpath("@href")[0]))
-	Log('preloadUrl: '+preloadUrl)	
-	AppendShowDirectoryItems(dir, preloadUrl)
+	Log('preloadUrl: '+preloadUrl)
+	i = 0
+	while preloadUrl is not None:
+		preloadUrl = AppendShowDirectoryItems(dir, preloadUrl)
+		Log.Debug("preloadUrl is now %s", preloadUrl)
+		i += 1
+		if i > 10:
+			j
 	
 	return dir
 	
 def AppendShowDirectoryItems(dir, url):
-	site = XML.ElementFromURL(url, True)
-	showElements = site.xpath("//div[@class='mt-media_item']")
-	Log('showElements.size: '+str(len(showElements)))
+	site = HTML.ElementFromURL(url)
 	
-	for i in range(0, len(showElements)):
-		showElement = showElements[i]
-		showLinkElements = showElement.xpath("./h3[@class='mt-title']/a")
-		
-		if (len(showLinkElements) > 0):
-			showLinkElement = showLinkElements[0]
-			
-			#Log('showLinkElement'+XML.StringFromElement(showLinkElement))
-		
-			showUrl = str(showLinkElement.xpath("@href")[0])
-			detailsUrl = str(showLinkElement.xpath("@rel")[0])
-		
-			showData = ParseShowData(FullURL(detailsUrl))
-		
-			if (showData is not None):
-				dir.Append(
-					Function(
-						DirectoryItem(
-							MenuByShow, 
-							showData['showTitle'],
-							showData['showChannel'],
-							showData['showDescription'],
-							FullURL(showData['thumbUrl'])
-						), url = FullURL(showUrl)
-					)
-				)
-
+	Log.Debug("Parsing page: %s", url)
+	for showElement in site.xpath("//div[@class='mt-media_item']"):
+		AppendShowData(dir, showElement)
+	links = site.xpath("//a[" + containing("ajax-paging")+ " and contains(., 'Weiter')]/@href")
+	if len(links) > 0:
+		return FullURL(links[-1])
+	else:
+		return None
 
 # parse show informations, into a map
-def ParseShowData(url):
-	site = XML.ElementFromURL(url, True)
+def AppendShowData(dir, showElement):
+	showLinkElements = showElement.xpath("./h3[@class='mt-title']/a")
+	if len(showLinkElements) == 0:
+		return None
+	else:
+		showLinkElement = showLinkElements[0]
+	showUrl = str(showLinkElement.xpath("@href")[0])
+	detailsUrl = str(showLinkElement.xpath("@rel")[0])
 	
-	titleElement = site.xpath("./h3[@class='mt-title']/a")[0]
-	imgElement = site.xpath("./div[@class='mt-image']/img")[0]
-	descElement = site.xpath("./p[@class='mt-description']")[0]
-	channelElement = site.xpath("./p[@class='mt-channel']")[0]
+	titleElement = showElement.xpath("./h3[@class='mt-title']/a")[0]
+	imgElement = showElement.xpath("./div[@class='mt-image']/img")[0]
+	channelElement = showElement.xpath(".//span[@class='mt-channel']")[0]
 	
+	detailElement = HTML.ElementFromURL(FullURL(detailsUrl))
+	descElement = detailElement.xpath("./p[@class='mt-description']")[0]
 	
 	showTitle = Utf8Decode(titleElement.text.strip())
 	showDescription = Utf8Decode(descElement.text.strip())
 	showChannel = Utf8Decode(channelElement.text.strip())
 	thumbUrl = str(imgElement.xpath("@src")[0])
 	
-	showDict = {
+	showData = {
 		'thumbUrl': thumbUrl,
 		'showTitle': showTitle,
 		'showChannel': showChannel,
 		'showDescription': showDescription
 	}
 	
-	return showDict
+	url = FullURL(showUrl)
+	dir.add(TVShowObject(key=Callback(MenuByShow, url=url), rating_key=url,
+	    title=showData['showTitle'], studio=showData['showChannel'],
+	    summary=showData['showDescription'], thumb=FullURL(showData['thumbUrl'])))
+
+@route(VIDEO_PREFIX + "/show")
+def MenuByShow(url):
 	
-def MenuByShow(sender, url):
-	Log('MenuByShow Called: sender['+str(sender)+'],ur['+str(url)+']')
-	
-	dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
+	dir = ObjectContainer()
 	
 	# two step of preloadPaths must be passed
 	# step 1
-	site = XML.ElementFromURL(url, True)
+	site = HTML.ElementFromURL(url)
 	preloadLinkPaths = site.xpath("//a[@class='mt-box_preload mt-box-overflow']/@href")
 	# preloadLinkPaths[0] is for show related podcasts
 	# preloadLinkPaths[1] is for show 'next upcomming livestream'
 	# preloadLinkPaths[2] is for list of episodes of the show 'Titel-Liste'
 	Log('preLoadLinkPaths leg: '+str(len(preloadLinkPaths)))
 	# step 2
-	site = XML.ElementFromURL(FullURL(preloadLinkPaths[2]), True)
+	site = HTML.ElementFromURL(FullURL(preloadLinkPaths[2]))
 	preloadLinkPaths = site.xpath("//a[@class='mt-box_preload']/@href")
 	
-	site = XML.ElementFromURL(FullURL(preloadLinkPaths[0]), True)
-	showElements = site.xpath("//div[@class='mt-media_item']")
-	
-	for i in range(0, len(showElements)):
-		showElement = showElements[i]
+	site = HTML.ElementFromURL(FullURL(preloadLinkPaths[0]))
+	for showElement in site.xpath("//div[@class='mt-media_item']"):
 		showData = ParseEpisodeData(showElement)
 		if (showData is not None):
-			dir.Append(GetVideoItem(showData, False))
+			dir.add(GetVideoItem(showData, False))
 	
 	return dir

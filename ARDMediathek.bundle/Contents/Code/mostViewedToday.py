@@ -14,17 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# PMS plugin framework
-#from PMS import *
-#from PMS.Objects import *
-#from PMS.Shortcuts import *
 from core import *
 
 ####################################################################################################
 
-def MenuTopMostViewedToday(sender):
-  dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
-  site = XML.ElementFromURL(BASE_URL, True)
+@route(VIDEO_PREFIX + "/mostviewedtoday")
+def MenuTopMostViewedToday():
+  oc = ObjectContainer()
+  site = HTML.ElementFromURL(BASE_URL)
   
   contentBoxes = site.xpath("//div[@class='mt-box']")
   mostViewedBox = contentBoxes[1]
@@ -35,19 +32,15 @@ def MenuTopMostViewedToday(sender):
   documentID = GetDocumentID(listPath)
   listURL = FullURL("/ard/servlet/ajax-cache/" + documentID + "/view=list/show=recent/index.html")
 
-  menuItems = ParseMenuTopMostViewedToday(listURL)
-  for i in range(0, len(menuItems)):
-    dir.Append(menuItems[i])
+  for menuItem in ParseMenuTopMostViewedToday(listURL):
+    oc.add(menuItem)
   
-  return dir
-
+  return oc
 
 def ParseMenuTopMostViewedToday(url):
   shows = []
-  site = XML.ElementFromURL(url, True)
-  showElements = site.xpath("//div[@class='mt-media_item']")
-  for i in range(0, len(showElements)):
-    showElement = showElements[i]
+  site = HTML.ElementFromURL(url)
+  for showElement in site.xpath("//div[@class='mt-media_item']"):
     showData = ParseEpisodeData(showElement)
     if (showData is not None):
       shows.append(GetVideoItem(showData))

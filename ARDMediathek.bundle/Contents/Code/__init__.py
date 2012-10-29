@@ -56,24 +56,7 @@ def Start():
 def VideoMainMenu():
   oc = ObjectContainer()
   oc.add(DirectoryObject(key=Callback(MenuTopByDate), title="Nach Datum (Letzte 7 Tage)"))
-  
-  return oc
+  oc.add(DirectoryObject(key=Callback(MenuTopMostViewedToday), title="Beliebteste Sendungen (Heute)"))
+  oc.add(DirectoryObject(key=Callback(MenuCategories), title="Kategorien"))
 
-# def Start():
-#   Plugin.AddPrefixHandler(VIDEO_PREFIX, VideoMainMenu, L('VideoTitle'), ICON, ART)
-# 
-#   Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-#   Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
-#   
-#   MediaContainer.art = R(ART)
-#   MediaContainer.title1 = NAME
-#   #DirectoryItem.thumb = R(ICON)
-#     
-# def VideoMainMenu():
-#   dir = MediaContainer(viewGroup="List")
-#   
-#   dir.Append(Function(DirectoryItem(MenuTopByDate, title = "Nach Datum (Letzte 7 Tage)")))
-#   dir.Append(Function(DirectoryItem(MenuTopMostViewedToday, title = "Beliebteste Sendungen (Heute)")))
-#   dir.Append(Function(DirectoryItem(MenuCategories, title = "Kategorien")))
-#   
-#   return dir
+  return oc

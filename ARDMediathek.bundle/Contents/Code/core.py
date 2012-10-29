@@ -18,8 +18,8 @@ import re
 
 ####################################################################################################
 
-BASE_URL = "http://www.ardmediathek.de"
 VIDEO_PREFIX = "/video/ardmediathek"
+BASE_URL = "http://www.ardmediathek.de"
 
 def FullURL(path):
   return BASE_URL + path
@@ -142,7 +142,6 @@ def GetStreamURL(url):
   # cut get parameters from the clip url
   if (streamClip.find("?") > -1):
   	streamClip = streamClip[0:streamClip.find("?")]
-  playerURL = 'http://www.plexapp.com/player/player.php?url=' + streamBase + '&clip=' + String.Quote(streamClip, usePlus=True)
   
   return IndirectResponse(VideoClipObject, key=RTMPVideoURL(url=streamBase, clip=streamClip))
 

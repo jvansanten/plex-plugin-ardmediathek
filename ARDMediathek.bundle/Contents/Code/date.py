@@ -14,19 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# PMS plugin framework
-#from PMS import *
-#from PMS.Objects import *
-#from PMS.Shortcuts import *
 from core import *
 
 ####################################################################################################
 
-
 @route(VIDEO_PREFIX + "/recent")
 def MenuTopByDate():
   oc = ObjectContainer()
-  #dir = MediaContainer(viewGroup="List", title2=sender.itemTitle)
   site = HTML.ElementFromURL(BASE_URL)
   
   listPath = str(site.xpath("//ul[@class='mt_navi']/li[@class='special']/a/@href")[0])
@@ -36,7 +30,6 @@ def MenuTopByDate():
     oc.add(item)
 
   return oc
-
 
 def ParseMenuTopByDate(url):
   shows = []
