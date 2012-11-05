@@ -139,12 +139,22 @@ def GetStreamURL(url):
   streamBase = streamParts[0]
   streamClip = streamParts[1]
 
+  if len(streamBase) == 0:
+    streamBase, streamClip = streamClip, streamBase
+
   # cut get parameters from the clip url
   if (streamClip.find("?") > -1):
   	streamClip = streamClip[0:streamClip.find("?")]
   
-  return IndirectResponse(VideoClipObject, key=RTMPVideoURL(url=streamBase, clip=streamClip))
-
+  Log.Debug("Found stream: '%s' '%s'", streamBase, streamClip)
+    
+  if streamBase.startswith('rtmp'):
+    return IndirectResponse(VideoClipObject, key=RTMPVideoURL(url=streamBase, clip=streamClip))
+  elif streamBase.startswith('http'):
+    return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url=streamBase+streamClip))
+  else:
+    # FIXME: how to display an error from here?
+    return IndirectResponse(ObjectContainer, key=None, header='Error', message='Unsupported stream protocol "%s"' % streamBase[:4])
 
 def GetDocumentID(path):
   reDocumentID = re.search("ajax-cache\/(\d+)\/view", path)
